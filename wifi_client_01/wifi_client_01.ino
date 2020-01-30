@@ -30,7 +30,7 @@ if (client.connect(server,8080))
     }
     Serial.print(i);
     Serial.println(" lines received");
-   while(true){delay(1000);};
+   while(true){delay(2000);};
   }
  
 }
