@@ -93,19 +93,19 @@ Command_Packet::Command_Packet()
 // creates and parses a response packet from the finger print scanner
 Response_Packet::Response_Packet(byte* buffer, bool UseSerialDebug)
 {
-	CheckParsing(buffer[0], COMMAND_START_CODE_1, COMMAND_START_CODE_1, "COMMAND_START_CODE_1", UseSerialDebug);
-	CheckParsing(buffer[1], COMMAND_START_CODE_2, COMMAND_START_CODE_2, "COMMAND_START_CODE_2", UseSerialDebug);
-	CheckParsing(buffer[2], COMMAND_DEVICE_ID_1, COMMAND_DEVICE_ID_1, "COMMAND_DEVICE_ID_1", UseSerialDebug);
-	CheckParsing(buffer[3], COMMAND_DEVICE_ID_2, COMMAND_DEVICE_ID_2, "COMMAND_DEVICE_ID_2", UseSerialDebug);
-	CheckParsing(buffer[8], 0x30, 0x31, "AckNak_LOW", UseSerialDebug);
+	RESCheckParsing(buffer[0], COMMAND_START_CODE_1, COMMAND_START_CODE_1, "COMMAND_START_CODE_1", UseSerialDebug);
+	RESCheckParsing(buffer[1], COMMAND_START_CODE_2, COMMAND_START_CODE_2, "COMMAND_START_CODE_2", UseSerialDebug);
+	RESCheckParsing(buffer[2], COMMAND_DEVICE_ID_1, COMMAND_DEVICE_ID_1, "COMMAND_DEVICE_ID_1", UseSerialDebug);
+	RESCheckParsing(buffer[3], COMMAND_DEVICE_ID_2, COMMAND_DEVICE_ID_2, "COMMAND_DEVICE_ID_2", UseSerialDebug);
+	RESCheckParsing(buffer[8], 0x30, 0x31, "AckNak_LOW", UseSerialDebug);
 	if (buffer[8] == 0x30) ACK = true; else ACK = false;
-	CheckParsing(buffer[9], 0x00, 0x00, "AckNak_HIGH", UseSerialDebug);
+	RESCheckParsing(buffer[9], 0x00, 0x00, "AckNak_HIGH", UseSerialDebug);
 
-	word checksum = CalculateChecksum(buffer, 10);
-	byte checksum_low = GetLowByte(checksum);
-	byte checksum_high = GetHighByte(checksum);
-	CheckParsing(buffer[10], checksum_low, checksum_low, "Checksum_LOW", UseSerialDebug);
-	CheckParsing(buffer[11], checksum_high, checksum_high, "Checksum_HIGH", UseSerialDebug);
+	word checksum = RESCalculateChecksum(buffer, 10);
+	byte checksum_low = RESGetLowByte(checksum);
+	byte checksum_high = RESGetHighByte(checksum);
+	RESCheckParsing(buffer[10], checksum_low, checksum_low, "Checksum_LOW", UseSerialDebug);
+	RESCheckParsing(buffer[11], checksum_high, checksum_high, "Checksum_HIGH", UseSerialDebug);
 
 	Error = ErrorCodes::ParseFromBytes(buffer[5], buffer[4]);
 
@@ -159,7 +159,7 @@ Response_Packet::ErrorCodes::Errors_Enum Response_Packet::ErrorCodes::ParseFromB
 }
 
 // Gets an int from the parameter bytes
-int Response_Packet::IntFromParameter()
+int Response_Packet::RESIntFromParameter()
 {
 	int retval = 0;
 	retval = (retval << 8) + ParameterBytes[3];
@@ -170,7 +170,7 @@ int Response_Packet::IntFromParameter()
 }
 
 // calculates the checksum from the bytes in the packet
-word Response_Packet::CalculateChecksum(byte* buffer, int length)
+word Response_Packet::RESCalculateChecksum(byte* buffer, int length)
 {
 	word checksum = 0;
 	for (int i=0; i<length; i++)
@@ -181,19 +181,19 @@ word Response_Packet::CalculateChecksum(byte* buffer, int length)
 }
 
 // Returns the high byte from a word
-byte Response_Packet::GetHighByte(word w)
+byte Response_Packet::RESGetHighByte(word w)
 {
 	return (byte)(w>>8)&0x00FF;
 }
 
 // Returns the low byte from a word
-byte Response_Packet::GetLowByte(word w)
+byte Response_Packet::RESGetLowByte(word w)
 {
 	return (byte)w&0x00FF;
 }
 
 // checks to see if the byte is the proper value, and logs it to the serial channel if not
-bool Response_Packet::CheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug)
+bool Response_Packet::RESCheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug)
 {
 	bool retval = (b != propervalue) && (b != alternatevalue);
 	if ((UseSerialDebug) && (retval))
@@ -216,11 +216,81 @@ bool Response_Packet::CheckParsing(byte b, byte propervalue, byte alternatevalue
 #ifndef __GNUC__
 #pragma region -= Data_Packet =-
 #endif  //__GNUC__
-//void Data_Packet::StartNewPacket()
-//{
-//	Data_Packet::NextPacketID = 0;
-//	Data_Packet::CheckSum = 0;
-//}
+Data_Packet::Data_Packet(byte* buffer, bool UseSerialDebug)
+{
+	CheckParsing(buffer[0], DATA_START_CODE_1, DATA_START_CODE_1, "DATA_START_CODE_1", UseSerialDebug);
+	CheckParsing(buffer[1], DATA_START_CODE_2, DATA_START_CODE_2, "DATA_START_CODE_2", UseSerialDebug);
+	CheckParsing(buffer[2], COMMAND_DEVICE_ID_1, COMMAND_DEVICE_ID_1, "COMMAND_DEVICE_ID_1", UseSerialDebug);
+	CheckParsing(buffer[3], COMMAND_DEVICE_ID_2, COMMAND_DEVICE_ID_2, "COMMAND_DEVICE_ID_2", UseSerialDebug);
+
+	word checksum = CalculateChecksum(buffer, 502);
+	byte checksum_low = GetLowByte(checksum);
+	byte checksum_high = GetHighByte(checksum);
+	CheckParsing(buffer[502], checksum_low, checksum_low, "Checksum_LOW", UseSerialDebug);
+	CheckParsing(buffer[503], checksum_high, checksum_high, "Checksum_HIGH", UseSerialDebug);
+
+    for (int i=0; i < 498; i++)
+    {
+	TempelateBytes[i] = buffer[i+4];
+     }
+
+	for (int i=0; i < 504; i++)
+	{
+		DTARawBytes[i]=buffer[i];
+	}
+}
+
+// Gets an int from the parameter bytes
+int Data_Packet::IntFromParameter()
+{
+	int retval = 0;
+	for(int i=497; i >= 0; i--)
+	{
+	retval = (retval << 8) + TempelateBytes[i];
+     }
+	return retval;
+}
+
+// calculates the checksum from the bytes in the packet
+word Data_Packet::CalculateChecksum(byte* buffer, int length)
+{
+	word checksum = 0;
+	for (int i=0; i<length; i++)
+	{
+		checksum +=buffer[i];
+	}
+	return checksum;
+}
+
+// Returns the high byte from a word
+byte Data_Packet::GetHighByte(word w)
+{
+	return (byte)(w>>8)&0x00FF;
+}
+
+// Returns the low byte from a word
+byte Data_Packet::GetLowByte(word w)
+{
+	return (byte)w&0x00FF;
+}
+
+// checks to see if the byte is the proper value, and logs it to the serial channel if not
+bool Data_Packet::CheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug)
+{
+	bool retval = (b != propervalue) && (b != alternatevalue);
+	if ((UseSerialDebug) && (retval))
+	{
+		Serial.print("Data_Packet parsing error ");
+		Serial.print(varname);
+		Serial.print(" ");
+		Serial.print(propervalue, HEX);
+		Serial.print(" || ");
+		Serial.print(alternatevalue, HEX);
+		Serial.print(" != ");
+		Serial.println(b, HEX);
+	}
+  return retval;
+}
 #ifndef __GNUC__
 #pragma endregion
 #endif  //__GNUC__
@@ -368,7 +438,7 @@ int FPS_GT511C3::GetEnrollCount()
 	SendCommand(packetbytes, 12);
 	Response_Packet* rp = GetResponse();
 
-	int retval = rp->IntFromParameter();
+	int retval = rp->RESIntFromParameter();
 	delete rp;
 	delete packetbytes;
 	return retval;
@@ -441,7 +511,7 @@ int FPS_GT511C3::Enroll1()
 	SendCommand(packetbytes, 12);
 	delete packetbytes;
 	Response_Packet* rp = GetResponse();
-	int retval = rp->IntFromParameter();
+	int retval = rp->RESIntFromParameter();
 //Change to  "retval < 3000", if using GT-521F52
 //Leave "reval < 200", if using GT-521F32/GT-511C3
 	if (retval < 200) retval = 3; else retval = 0;
@@ -470,7 +540,7 @@ int FPS_GT511C3::Enroll2()
 	SendCommand(packetbytes, 12);
 	delete packetbytes;
 	Response_Packet* rp = GetResponse();
-	int retval = rp->IntFromParameter();
+	int retval = rp->RESIntFromParameter();
 //Change to "retval < 3000", if using GT-521F52
 //Leave "reval < 200", if using GT-521F32/GT-511C3
 	if (retval < 200) retval = 3; else retval = 0;
@@ -500,7 +570,7 @@ int FPS_GT511C3::Enroll3()
 	SendCommand(packetbytes, 12);
 	delete packetbytes;
 	Response_Packet* rp = GetResponse();
-	int retval = rp->IntFromParameter();
+	int retval = rp->RESIntFromParameter();
 //Change to "retval < 3000", if using GT-521F52
 //Leave "reval < 200", if using GT-521F32/GT-511C3
         if (retval < 200) retval = 3; else retval = 0;
@@ -620,7 +690,7 @@ int FPS_GT511C3::Identify1_N()
 	delete cp;
 	SendCommand(packetbytes, 12);
 	Response_Packet* rp = GetResponse();
-	int retval = rp->IntFromParameter();
+	int retval = rp->RESIntFromParameter();
 //Change to "retval > 3000" and "retval = 3000", if using GT-521F52
 //Leave "reval > 200" and "retval = 200", if using GT-521F32/GT-511C3
 	if (retval > 200) retval = 200;
@@ -678,12 +748,14 @@ int FPS_GT511C3::GetTemplate(int id)
 	SendCommand(packetbytes, 12);
 	delete packetbytes;
 	Response_Packet* rp = GetResponse();
+	Data_Packet* dp = GetData();
 	int retval = 0;
 	if (rp->ACK == false)
 	{
 		if (rp->Error == Response_Packet::ErrorCodes::NACK_INVALID_POS) retval = 1;
 		if (rp->Error == Response_Packet::ErrorCodes::NACK_IS_NOT_USED) retval = 2;
 	}
+	delete dp;
 	delete rp;
 	return retval;
 }
@@ -820,6 +892,38 @@ Response_Packet* FPS_GT511C3::GetResponse()
 	return rp;
 };
 
+Data_Packet* FPS_GT511C3::GetData()
+{
+	byte firstbyte = 0;
+	bool done = false;
+	//_serial.listen();
+	while (done == false)
+	{
+		firstbyte = (byte)_serial.read();
+		if (firstbyte == Data_Packet::DATA_START_CODE_1)
+		{
+			done = true;
+		}
+	}
+	byte* dta = new byte[504];
+	dta[0] = firstbyte;
+	for (int i=1; i < 504; i++)
+	{
+		while (_serial.available() == false) delay(10);
+		dta[i]= (byte) _serial.read();
+	}
+	Data_Packet* dp = new Data_Packet(dta, UseSerialDebug);
+	delete dta;
+	if (UseSerialDebug)
+	{
+		Serial.print("FPS - DATA: ");
+		SendToSerial(dp->DTARawBytes, 504);
+		Serial.flush();
+		Serial.println();
+		Serial.println();
+	}
+	return dp;
+};
 // sends the bye aray to the serial debugger in our hex format EX: "00 AF FF 10 00 13"
 void FPS_GT511C3::SendToSerial(byte data[], int length)
 {

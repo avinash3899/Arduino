@@ -132,13 +132,13 @@ class Response_Packet
 		static const byte COMMAND_START_CODE_2 = 0xAA;	// Static byte to mark the beginning of a command packet	-	never changes
 		static const byte COMMAND_DEVICE_ID_1 = 0x01;	// Device ID Byte 1 (lesser byte)							-	theoretically never changes
 		static const byte COMMAND_DEVICE_ID_2 = 0x00;	// Device ID Byte 2 (greater byte)							-	theoretically never changes
-		int IntFromParameter();
+		int RESIntFromParameter();
 
 	private: 
-		bool CheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug);
-		word CalculateChecksum(byte* buffer, int length);
-		byte GetHighByte(word w);						
-		byte GetLowByte(word w);
+		bool RESCheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug);
+		word RESCalculateChecksum(byte* buffer, int length);
+		byte RESGetHighByte(word w);						
+		byte RESGetLowByte(word w);
 };
 #ifndef __GNUC__
 #pragma endregion
@@ -149,17 +149,26 @@ class Response_Packet
 #endif  //__GNUC__
 // Data Mule packet for receiving large data(in 128 byte pieces) from the FPS
 // This class can only transmit one packet at a time
-class Data_Packet{
+class Data_Packet
+{
 	public:
-		static int CheckSum;
-		int PacketID;
-		int ValidByteLength;
-		byte Data[128];
-		void StartNewPacket();
-		bool IsLastPacket;
-	private:
-		static int NextPacketID;
+		
+		Data_Packet(byte* buffer, bool UseSerialDebug);
+		byte DTARawBytes[504];
+		byte TempelateBytes[498];
+		static const byte DATA_START_CODE_1 = 0x5A;	// Static byte to mark the beginning of a command packet	-	never changes
+		static const byte DATA_START_CODE_2 = 0xA5;	// Static byte to mark the beginning of a command packet	-	never changes
+		static const byte COMMAND_DEVICE_ID_1 = 0x01;	// Device ID Byte 1 (lesser byte)							-	theoretically never changes
+		static const byte COMMAND_DEVICE_ID_2 = 0x00;	// Device ID Byte 2 (greater byte)							-	theoretically never changes
+		int IntFromParameter();
+
+	private: 
+		bool CheckParsing(byte b, byte propervalue, byte alternatevalue, const char* varname, bool UseSerialDebug);
+		word CalculateChecksum(byte* buffer, int length);
+		byte GetHighByte(word w);						
+		byte GetLowByte(word w);
 };
+
 #ifndef __GNUC__
 #pragma endregion
 #endif  //__GNUC__
@@ -338,7 +347,7 @@ class FPS_GT511C3
 	//	203 - Device error
 	// Not implemented due to memory restrictions on the arduino
 	// may revisit this if I find a need for it
-	int SetTemplate(byte* tmplt, int id, bool duplicateCheck);
+	//int SetTemplate(byte* tmplt, int id, bool duplicateCheck);
 
 	// Commands that are not implemented (and why)
 	// VerifyTemplate1_1 - Couldn't find a good reason to implement this on an arduino
@@ -365,16 +374,17 @@ class FPS_GT511C3
 	// resets the Data_Packet class, and gets ready to download
 	// Not implemented due to memory restrictions on the arduino
 	// may revisit this if I find a need for it
-	void StartDataDownload();
+	//void StartDataDownload();
 
 	// Returns the next data packet 
 	// Not implemented due to memory restrictions on the arduino
 	// may revisit this if I find a need for it
-	Data_Packet GetNextDataPacket();
+	//Data_Packet GetNextDataPacket();
 
 private:
 	 void SendCommand(byte cmd[], int length);
 	 Response_Packet* GetResponse();
+	 Data_Packet* GetData();
 	 uint8_t pin_RX,pin_TX;
 	 SoftwareSerial _serial;
 };

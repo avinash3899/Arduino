@@ -21,8 +21,8 @@
 #define MICROSTEPS 1
 
 // All the wires needed for full functionality
-#define DIR 4
-#define STEP 5
+#define DIR 2
+#define STEP 3
 //Uncomment line to use enable/disable functionality
 //#define SLEEP 13
 
